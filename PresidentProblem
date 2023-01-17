@@ -1,0 +1,172 @@
+import numpy as np
+import pandas as pd
+from datetime import datetime
+import dataframe_image as dfi
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+
+class PresidentData:
+    def __init__(self):
+        self.df = None
+
+    def preprocessPresidentData(self):
+        # Import the CSV into dataframe df
+        self.df = pd.read_csv('PresidentData.csv', sep=',', header=0)[:-1]
+
+        # REQUIREMENT 1 - Parse Year of Birth from "BIRTH DATE" column
+        self.df["year_of_birth"] = pd.DatetimeIndex(self.df["BIRTH DATE"]).year.astype(int)
+
+        # Creating variable "LATEST LIVING DATE"
+        # This is used to further calculate lived_dates, lived_months and lived_years.
+        self.df["latest_living_date"] = self.df["DEATH DATE"]
+
+        # Preprocess data - All the records having NaN(empty) value for death date, denote that the president is alive.
+        # Thus, we mark the column latest_living_date with today's date
+        self.df["latest_living_date"].fillna(datetime.now().strftime("%b %d, %Y"), inplace=True)
+
+        # REQUIREMENT 2 - Calculating lived_years
+        date_diff = pd.DatetimeIndex(self.df["latest_living_date"]) - pd.DatetimeIndex(self.df["BIRTH DATE"])
+        self.df["lived_years"] = (date_diff / np.timedelta64(1, "Y")).astype(int)
+
+        # REQUIREMENT 3 - Calculating lived_months
+        self.df["lived_months"] = (date_diff / np.timedelta64(1, "M")).astype(int)
+
+        # REQUIREMENT 4 - Calculating lived_days
+        self.df["lived_days"] = ((date_diff / np.timedelta64(1, "D"))).astype(int)
+
+        # Preprocess data - All the blank values associated with locations of death, changed to "ALIVE"
+        self.df["LOCATION OF DEATH"].fillna('ALIVE', inplace=True)
+
+        # Preprocess data - All the blank values associated death date marked as NaN with "ALIVE"
+        self.df["DEATH DATE"].fillna('ALIVE', inplace=True)
+
+        #Applying styles to the dataframe
+        styles = [dict(selector="caption", props=[("text-align", "center"), ("font-size", "250%"), ("color", 'black')])]
+        df_styled = self.df.style.background_gradient()
+        df_styled.set_caption("U.S. Presidents Birth and Death Information").set_table_styles(styles)
+        df_styled.hide(axis='index')
+        df_styled.hide_columns(["latest_living_date"])
+
+        #Plot and export. Using packages dataframe_image, matplotlib.pyplot and matplotlib.image for the same
+        dfi.export(df_styled, "PresidentData.png")
+        presidentDataImage = mpimg.imread('PresidentData.png')
+        plt.imshow(presidentDataImage)
+        plt.axis('off')
+        plt.show()
+
+    def topTenLongestToShortestLivedPresident(self):
+        # REQUIREMENT 5 - Top 10 Presidents of the United States from longest lived to shortest lived
+        longToShortLivedDataFrame = self.df.sort_values("lived_days", ascending=False).head(10)
+
+        # Changing lived_years column name to AGE
+        longToShortLivedDataFrame.rename(columns={"lived_years": "Age (In Years)"}, inplace=True)
+
+        #Apply style to the dataframe
+        longToShortLivedDataFrameStyle = longToShortLivedDataFrame.style
+        longToShortLivedDataFrameStyle.set_caption("Top 10 Presidents of the United States from longest lived to shortest lived")
+        longToShortLivedDataFrameStyle.hide_columns(["BIRTH PLACE", "LOCATION OF DEATH", "lived_months", "lived_days", "year_of_birth", "latest_living_date"])
+        longToShortLivedDataFrameStyle.hide(axis="index")
+
+        #Show plot and export. Using dataframe_image, matplotlib.pyplot and matplotlib.image for the same
+        dfi.export(longToShortLivedDataFrameStyle, "TopTenLongestToShortestLivedPresident.png")
+        image = mpimg.imread('TopTenLongestToShortestLivedPresident.png')
+        plt.imshow(image)
+        plt.axis('off')
+        plt.show()
+
+    def topTenShortestToLongestLivedPresident(self):
+        # REQUIREMENT 6 - Top 10 Presidents of the United States from shortest lived to longest lived
+        shortToLongLivedDataFrame = self.df.sort_values("lived_days", ascending=True).head(10)
+
+        # Changing lived_years column name to AGE
+        shortToLongLivedDataFrame.rename(columns={"lived_years": "Age (In Years)"}, inplace=True)
+
+        # Apply style to the dataframe
+        shortToLongLivedDataFrameStyle = shortToLongLivedDataFrame.style
+        shortToLongLivedDataFrameStyle.set_caption("Top 10 Presidents of the United States from shortest lived to longest lived")
+        shortToLongLivedDataFrameStyle.hide_columns(["BIRTH PLACE", "LOCATION OF DEATH", "lived_months", "lived_days", "year_of_birth", "latest_living_date"])
+        shortToLongLivedDataFrameStyle.hide(axis="index")
+
+        #Show plot and export. Using dataframe_image, matplotlib.pyplot and matplotlib.image for the same
+        dfi.export(shortToLongLivedDataFrameStyle, "TopTenShortestToLongestLivedPresident.png")
+        img = mpimg.imread('TopTenShortestToLongestLivedPresident.png')
+        plt.imshow(img)
+        plt.axis('off')
+        plt.show()
+
+    def calculateStats(self):
+        # REQUIREMENT 7 8 - Calculating lived_days mean and weighted average
+        # The weighted average will remain the same as we have just one sample data. The error associated with each measurement is the same
+        livedDaysMean = self.df['lived_days'].mean()
+
+        # REQUIREMENT 9 - Calculating lived_days median
+        livedDaysMedian = self.df['lived_days'].median()
+
+        # REQUIREMENT 10 - Calculating lived_days mode
+        livedDaysMode = self.df['lived_years'].mode()*365
+
+        # REQUIREMENT 11 - Calculating maximum lived_days
+        livedDaysMax = self.df['lived_days'].max()
+
+        # REQUIREMENT 12 - Calculating minimum lived_days
+        livedDaysMin = self.df['lived_days'].min()
+
+        # REQUIREMENT 13 - Calculating lived_days standard deviation
+        livedDaysStandardDeviation = self.df['lived_days'].std()
+
+        statistics = {
+            'Mean' : [livedDaysMean],
+            'Weighted average': [livedDaysMean],
+            'Median': [livedDaysMedian],
+            'Mode': [ list(livedDaysMode)],
+            'Max': [livedDaysMax],
+            'Min': [livedDaysMin],
+            'Standard Deviation': [livedDaysStandardDeviation],
+        }
+
+        statisticsTable = pd.DataFrame(statistics, index=['Lived Days'])
+        statisticsTable.T
+
+        # Show plot and export. Using dataframe_image, matplotlib.pyplot and matplotlib.image for the same
+        dfi.export(statisticsTable.T, "Statistics.png")
+        statisticsImage = mpimg.imread('Statistics.png')
+        plt.imshow(statisticsImage)
+        plt.axis('off')
+        plt.show()
+
+    def plotGraph(self):
+        # REQUIREMENT 14 - Plot graph
+        self.df['lived_years'].plot(kind='hist',bins=[40,45,50,55,60,65,70,75,80,85,90,95,100], linewidth=2, color='#AFE1AF', edgecolor='black')
+        plt.xlabel("Lived years", labelpad=15)
+        plt.ylabel("Number of Presidents", labelpad=15)
+        plt.title("Frequency Distribution of Presidential Ages", fontsize=22)
+
+        livedYearsMean = self.df['lived_years'].mean()
+        livedYearsMedian = self.df['lived_years'].median()
+        livedYearsMode = self.df['lived_years'].mode()
+
+        measurements = [livedYearsMode[0], livedYearsMode[1], livedYearsMedian, livedYearsMean]
+        names = ["Mode 1","Mode 2", "Median", "Mean"]
+        colors = ['red','red', 'blue', 'orange']
+        for measurement, name, color in zip(measurements, names, colors):
+            plt.axvline(x=measurement, linestyle='--', linewidth=2.5, label='{0} at {1}'.format(name, measurement),c=color)
+        plt.legend()
+        plt.show()
+
+if __name__=="__main__":
+    presidentData = PresidentData()
+
+    #ProcessData - Requirement 1, 2, 3, 4
+    presidentData.preprocessPresidentData()
+
+    # Requirement 5
+    presidentData.topTenLongestToShortestLivedPresident()
+
+    # Requirement 6
+    presidentData.topTenShortestToLongestLivedPresident()
+
+    # Requirement 7, 8, 9, 10, 11, 12, 13
+    presidentData.calculateStats()
+
+    # Requirement 14
+    presidentData.plotGraph()
